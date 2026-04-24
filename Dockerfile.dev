@@ -1,6 +1,7 @@
-ARG MP_VERSION=3.4.0
-
 FROM node:20-alpine
+
+# Must be declared after FROM so RUN can see it (Bitbucket tag, e.g. v3.4.0).
+ARG MP_VERSION=v3.4.0
 
 # libs needed to build the masterportal
 RUN apk update && apk add --no-cache --virtual .gyp \
@@ -14,25 +15,36 @@ RUN apk update && apk add --no-cache --virtual .gyp \
     git \
     libc6-compat
 
-RUN git clone https://bitbucket.org/geowerkstatt-hamburg/masterportal.git
+# Shallow clone pinned tag so npm engines match this image (avoid default origin/dev).
+RUN git clone --branch ${MP_VERSION} --single-branch --depth 1 \
+    https://bitbucket.org/geowerkstatt-hamburg/masterportal.git /masterportal
 
 WORKDIR /masterportal
-RUN git checkout ${MP_VERSION}
 
-COPY ./portalconfig/package.json ./
+# Use Masterportal's root package.json (do not replace with a missing portalconfig copy).
+# Proxy /api to UMP on the Docker host (see docker-compose extra_hosts).
+COPY ./devtools/proxyconf.json ./devtools/proxyconf.json
 
 # install dependencies
 RUN npm install
+
+# simulationTool npm deps: compose bind-mounts ./scenario-explorer over /masterportal/addons/, so
+# addons/simulationTool/node_modules on the host is often empty. Webpack resolves from
+# /masterportal/node_modules (not mounted) — install these at the Masterportal root.
+# Rebuild the image after changing scenario-explorer/simulationTool/package.json dependencies.
+RUN npm install @vueform/slider@^2.1.10 lodash@^4.17.21 plotly.js-dist@^2.35.2 vuetify@^3.7.0
+
+COPY ./scripts/patch-webpack-vueform-alias.cjs /tmp/patch-webpack-vueform-alias.cjs
+RUN node /tmp/patch-webpack-vueform-alias.cjs
 
 # disable host check in webpack in order to get nginx proxy working together with webpack
 RUN sed -i 's;port: 9001,;port: 9001,disableHostCheck: true,;' devtools/webpack.dev.js
 # disable https to get hot reload running again
 RUN sed -i 's;https: true,;https: false,;' devtools/webpack.dev.js
 
-WORKDIR /masterportal/addons/simulationTool
-RUN npm install
-
 WORKDIR /masterportal
 
-# run masterportal
-ENTRYPOINT ["npm", "run", "start", "--", "--host", "0.0.0.0"]
+COPY ./scripts/docker-entrypoint-dev.sh /docker-entrypoint-dev.sh
+RUN chmod +x /docker-entrypoint-dev.sh
+
+ENTRYPOINT ["/docker-entrypoint-dev.sh"]

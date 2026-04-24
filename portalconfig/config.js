@@ -41,14 +41,18 @@ const Config = {
     },
     vuetify: "addons/simulationTool/vuetify.js",
     addons: ["simulationTool"],
-    simulationApiUrl: "https://modelplatform.comodeling.city/api",
+    // Browser calls this URL directly (Vuex actions). Use host-accessible UMP; CORS is enabled on UMP.
+    simulationApiUrl: "http://127.0.0.1:5000/api",
     login: {
-        oidcAuthorizationEndpoint: "https://auth.comodeling.city/realms/UrbanModelPlatform/protocol/openid-connect/auth",
-        oidcTokenEndpoint: "https://auth.comodeling.city/realms/UrbanModelPlatform/protocol/openid-connect/token",
+        // UMP docker-compose-dev publishes Keycloak with legacy /auth context path (see urban-model-platform .env.example).
+        oidcAuthorizationEndpoint: "http://127.0.0.1:8282/auth/realms/UrbanModelPlatform/protocol/openid-connect/auth",
+        oidcTokenEndpoint: "http://127.0.0.1:8282/auth/realms/UrbanModelPlatform/protocol/openid-connect/token",
         oidcClientId: "ump-client",
-        oidcRedirectUri: "http://localhost/portal/simulation/",
+        // Must match how you open the portal (docker-compose nginx default: port 8080 on host) and Keycloak client ump-client.
+        oidcRedirectUri: "http://localhost:8080/portal/simulation/",
         oidcScope: "openid",
-        interceptorUrlRegex: "https?://localhost.*" // add authorization to all URLs that match the given regex
+        // Attach Bearer to same-origin /api (webpack proxy) and to direct simulationApiUrl calls.
+        interceptorUrlRegex: "https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?/.*"
     }
 };
 

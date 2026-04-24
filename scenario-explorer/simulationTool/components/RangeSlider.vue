@@ -1,5 +1,6 @@
 <script>
   import Slider from '@vueform/slider';
+  import '@vueform/slider/themes/default.css';
   import isEqual from "lodash/isEqual";
 
   export default {
@@ -74,8 +75,6 @@
 </template>
 
 <style lang="scss">
-  @import "@vueform/slider/themes/default.css";
-
   .range-slider {
     display: flex;
     align-items: center;

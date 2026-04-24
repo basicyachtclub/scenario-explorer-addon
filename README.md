@@ -6,6 +6,8 @@ This repository contains the code for the [Masterportal](https://bitbucket.org/g
 
 ## Development Setup
 
+**Detailed reproduction / build rationale:** [docs/REPRODUCTION.md](./docs/REPRODUCTION.md)
+
 ### Requirements
 - A running instance of the [Urban Model Platform](https://github.com/citysciencelab/urban-model-platform)
 - Docker
@@ -21,10 +23,31 @@ Most configuration of the AddOn and takes place in the [portalconfig](./portalco
 | - `oidcAuthorizationEndpoint`| The URL for the OIDC authorization endpoint.                                                    | `https://auth.example.com/authorize`         |
 | - `oidcTokenEndpoint`        | The URL for the OIDC token endpoint.                                                            | `https://auth.example.com/token`             |
 | - `oidcClientId`             | The client ID for OIDC authentication (typically set up in the Keycloak instance)               | `scenario-explorer`                           |
-| - `oidcRedirectUri`          | The redirect URI for OIDC authentication (localhost when in development)                        | `http://localhost/portal/simulation/`           |
+| - `oidcRedirectUri`          | The redirect URI for OIDC authentication (localhost when in development)                        | `http://localhost:8080/portal/simulation/`           |
 | - `oidcScope`                | The scope for OIDC authentication.                                                              | `"openid"`                       |
 | - `interceptorUrlRegex`      | A regex pattern to match URLs that should be intercepted.                                       | `^https://api\.example\.com/.*$`             |
 
+### Local Urban Model Platform (this repository defaults)
+
+[`portalconfig/config.js`](./portalconfig/config.js) is set up for a typical **urban-model-platform** dev stack on the host:
+
+- API: `http://127.0.0.1:5000/api` (`simulationApiUrl`)
+- Keycloak: `http://127.0.0.1:8282/auth/...` (realm **UrbanModelPlatform**, client **ump-client**, same as UMP `.env.example`)
+- Redirect URI after login: `http://localhost:8080/portal/simulation/` (nginx from `docker compose`; override host port with `SCENARIO_EXPLORER_HTTP_PORT`, default **8080**)
+
+**Docker Compose dev server:** [`devtools/proxyconf.json`](./devtools/proxyconf.json) proxies **`/api`** from the Masterportal webpack dev server to **`http://host.docker.internal:5000`** (UMP on the host). [`docker-compose.yml`](./docker-compose.yml) sets `extra_hosts` so `host.docker.internal` resolves on Linux too.
+
+**UMP must listen on all interfaces** (not only `127.0.0.1`), otherwise the container cannot reach it. Example: `FLASK_RUN_HOST=0.0.0.0 FLASK_RUN_PORT=5000 flask run` from the urban-model-platform repo (with your usual `FLASK_APP`).
+
+**Manual Masterportal clone (no Docker):** copy [`devtools/proxyconf.local.example.json`](./devtools/proxyconf.local.example.json) to `masterportal/devtools/proxyconf.json` so `/api` targets `http://127.0.0.1:5000`.
+
+**Keycloak:** Import or align your realm with [urban-model-platform/keycloak-example-conf.json](https://github.com/citysciencelab/urban-model-platform/blob/main/keycloak-example-conf.json). Client **ump-client** should allow redirect URIs used by the Scenario Explorer (the example uses `/*` on `redirectUris`). After changing Keycloak in a running realm, add **`http://localhost`** / **`http://127.0.0.1`** to **Web origins** for **ump-client** if the browser blocks token requests (the example export includes these).
+
+**Addon `node_modules`:** The compose bind-mount replaces `./scenario-explorer` over `/masterportal/addons/`, so `addons/simulationTool/node_modules` on the host is often missing. The **Docker image** installs `simulationTool` dependencies (`@vueform/slider`, `lodash`, `plotly.js-dist`, `vuetify`) into **`/masterportal/node_modules`**, which is **not** mounted over, so webpack can resolve imports. **Rebuild** the image (`docker compose build scenario-explorer`) after changing `simulationTool/package.json` dependencies. For local IDE support you can still run `cd scenario-explorer/simulationTool && npm install` on the host.
+
+**Vuetify + Webpack 4:** The addon loads Vuetify via **`vuetify/lib/...`** paths in [`scenario-explorer/simulationTool/vuetify/index.js`](./scenario-explorer/simulationTool/vuetify/index.js) because Masterportal’s webpack does not resolve Vuetify’s `package.json` `exports` subpaths (`vuetify/components`, etc.). Current 3.x builds ship **`lib/**/index.js`** (some older tarballs used `.mjs`). After a **major** `vuetify` upgrade, if the build breaks, confirm the filenames under `node_modules/vuetify/lib/components` and `.../directives` (or switch back to subpath imports if you move to a build that supports `exports`).
+
+**Run order:** Start UMP backing services and the Flask API (`make start-dev` and run the app per UMP docs), then `docker compose up --build` in this repo and open `http://localhost:8080/portal/simulation/` (or your chosen `SCENARIO_EXPLORER_HTTP_PORT`).
 
 ### Modifying Existing Phrasing
 

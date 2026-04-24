@@ -1,0 +1,13 @@
+{
+  "/geodienste_hamburg_de": {
+    "target": "http://geodienste.hamburg.de",
+    "pathRewrite": {
+      "^/geodienste_hamburg_de": ""
+    }
+  },
+  "/api": {
+    "target": "http://127.0.0.1:5000",
+    "secure": false,
+    "changeOrigin": true
+  }
+}
