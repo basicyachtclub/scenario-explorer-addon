@@ -88,8 +88,16 @@ export default {
         clearSearch() {
             this.searchString = '';
         },
-        formatDateTime(dateTime) {
-            return new Date(dateTime).toLocaleString({
+        formatDateTime(dateTime, fallbacks = []) {
+            const value = dateTime ?? fallbacks.find(Boolean);
+            if (!value) {
+                return "—";
+            }
+            const parsed = new Date(value);
+            if (Number.isNaN(parsed.getTime())) {
+                return "—";
+            }
+            return parsed.toLocaleString({
                 year: "numeric",
                 month: "2-digit",
                 day: "2-digit",
@@ -217,7 +225,7 @@ export default {
                             {{this.getModelName(job)}}
                         </td>
                         <td>
-                            {{this.formatDateTime(job.started)}}
+                            {{this.formatDateTime(job.started, [job.updated, job.created])}}
                         </td>
                         <td>
                             <div class="status" :class="job.status">

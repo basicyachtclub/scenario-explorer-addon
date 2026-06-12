@@ -32,7 +32,7 @@ Most configuration of the AddOn and takes place in the [portalconfig](./portalco
 [`portalconfig/config.js`](./portalconfig/config.js) is set up for a typical **urban-model-platform** dev stack on the host:
 
 - API: `http://127.0.0.1:5000/api` (`simulationApiUrl`)
-- Keycloak: `http://127.0.0.1:8282/auth/...` (realm **UrbanModelPlatform**, client **ump-client**, same as UMP `.env.example`)
+- Keycloak (OIDC): `http://localhost:8282/auth/realms/UrbanModelPlatform/...` — path **`/auth`** matches Keycloak when served under that context (account-console at `http://localhost:8282/auth`). Keep **`localhost`** (not mixed with `127.0.0.1`) on `oidcAuthorizationEndpoint` / `oidcTokenEndpoint` so issuer and redirect URIs align with client **ump-client** (realm **UrbanModelPlatform**; same stack as UMP `.env.example`).
 - Redirect URI after login: `http://localhost:8080/portal/simulation/` (nginx from `docker compose`; override host port with `SCENARIO_EXPLORER_HTTP_PORT`, default **8080**)
 
 **Docker Compose dev server:** [`devtools/proxyconf.json`](./devtools/proxyconf.json) proxies **`/api`** from the Masterportal webpack dev server to **`http://host.docker.internal:5000`** (UMP on the host). [`docker-compose.yml`](./docker-compose.yml) sets `extra_hosts` so `host.docker.internal` resolves on Linux too.

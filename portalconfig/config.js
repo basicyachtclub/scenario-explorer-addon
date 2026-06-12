@@ -41,12 +41,14 @@ const Config = {
     },
     vuetify: "addons/simulationTool/vuetify.js",
     addons: ["simulationTool"],
-    // Browser calls this URL directly (Vuex actions). Use host-accessible UMP; CORS is enabled on UMP.
-    simulationApiUrl: "http://127.0.0.1:5000/api",
+    // Same-origin via nginx/webpack proxy (:8080/api → UMP on host). Avoids CORS and fixes job result links.
+    simulationApiUrl: "http://localhost:8080/api",
     login: {
-        // UMP docker-compose-dev publishes Keycloak with legacy /auth context path (see urban-model-platform .env.example).
-        oidcAuthorizationEndpoint: "http://127.0.0.1:8282/auth/realms/UrbanModelPlatform/protocol/openid-connect/auth",
-        oidcTokenEndpoint: "http://127.0.0.1:8282/auth/realms/UrbanModelPlatform/protocol/openid-connect/token",
+        // Keycloak OIDC uses the /auth context path (account-console: http://localhost:8282/auth).
+        // Use the same hostname as in the browser (localhost) for issuer/redirect consistency with Keycloak client settings.
+        oidcAuthorizationEndpoint: "http://localhost:8282/auth/realms/UrbanModelPlatform/protocol/openid-connect/auth",
+        oidcTokenEndpoint: "http://localhost:8282/auth/realms/UrbanModelPlatform/protocol/openid-connect/token",
+        oidcRevocationEndpoint: "http://localhost:8282/auth/realms/UrbanModelPlatform/protocol/openid-connect/revoke",
         oidcClientId: "ump-client",
         // Must match how you open the portal (docker-compose nginx default: port 8080 on host) and Keycloak client ump-client.
         oidcRedirectUri: "http://localhost:8080/portal/simulation/",

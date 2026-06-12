@@ -71,7 +71,7 @@ These are documented in [`README.md`](../README.md) but matter on a new machine:
 - **`host.docker.internal` on Linux:** `extra_hosts: host.docker.internal:host-gateway` in compose.
 - **Webpack dev server:** `disableHostCheck: true`, HTTPS disabled via `sed` in `Dockerfile.dev` so nginx + HMR work as in this setup.
 - **UMP:** Flask should listen on **`0.0.0.0`**, not only `127.0.0.1`, so the container can reach the API.
-- **Keycloak / browser:** Web origins and redirect URIs must include your dev origin (see README).
+- **Keycloak / browser:** OIDC endpoints use **`localhost:8282`** with path **`/auth/realms/...`** when Keycloak is mounted under `/auth`. Web origins and redirect URIs must match **`oidcRedirectUri`** and client **ump-client** (see README).
 
 ---
 

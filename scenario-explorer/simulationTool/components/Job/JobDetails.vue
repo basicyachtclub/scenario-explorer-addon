@@ -36,7 +36,12 @@ export default {
     computed: {
         ...mapGetters(["layerConfigById"]),
         ...mapGetters("Modules/SimulationTool", ["selectedJobId", "jobResultData"]),
-        ...mapGetters("Modules/Login", ["accessToken", "loggedIn"])
+        ...mapGetters("Modules/Login", ["accessToken", "loggedIn"]),
+        jobParameterInputs () {
+            return this.job?.metadata?.parameters?.inputs
+                || this.job?.parameters?.inputs
+                || {};
+        }
     },
     mounted() {
         this.fetchJob(this.selectedJobId);
@@ -93,7 +98,7 @@ export default {
 
             try {
                 this.jobRequestState.loading = true;
-                const response = await fetch(`/api/jobs/${jobId}`, {
+                const response = await fetch(`/api/jobs/${jobId}?additionalMetadata=true`, {
                     headers: {
                         "Content-Type": "application/json",
                         ...additionalHeaders
@@ -214,8 +219,16 @@ export default {
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
         },
-        formatDateTime(dateTime) {
-            return new Date(dateTime).toLocaleString({
+        formatDateTime(dateTime, fallbacks = []) {
+            const value = dateTime ?? fallbacks.find(Boolean);
+            if (!value) {
+                return "—";
+            }
+            const parsed = new Date(value);
+            if (Number.isNaN(parsed.getTime())) {
+                return "—";
+            }
+            return parsed.toLocaleString({
                 year: "numeric",
                 month: "2-digit",
                 day: "2-digit",
@@ -397,13 +410,13 @@ export default {
                         <strong>
                             {{ $t('additional:modules.tools.simulationTool.started') }}:
                         </strong>
-                        {{ this.formatDateTime(job?.started) }}
+                        {{ this.formatDateTime(job?.started, [job?.updated, job?.created]) }}
                     </div>
                     <div>
                         <strong>
                             {{ $t('additional:modules.tools.simulationTool.completed') }}:
                         </strong>
-                        {{ this.formatDateTime(job?.finished) }}
+                        {{ this.formatDateTime(job?.finished, [job?.updated]) }}
                     </div>
                 </div>
                 <div class="status-wrapper">
@@ -443,7 +456,7 @@ export default {
                             </button>
                     </h4>
                     <ul v-if="this.jobSelectVisible">
-                        <li v-for="(value, key) in job?.parameters.inputs" :key="key">
+                        <li v-for="(value, key) in jobParameterInputs" :key="key">
                             <strong>{{key}}</strong>: {{value}}
                         </li>
                     </ul>

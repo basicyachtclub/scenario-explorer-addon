@@ -93,28 +93,48 @@ export default {
             }
         },
         setDefaultExecutionValues (result) {
-            this.executionValues = {};
+            const values = { ...this.executionValues };
             Object.entries(result.inputs).forEach(([key, input]) => {
-                let defaultValue
-                if (input.schema.default) {
+                if (values[key] !== undefined) {
+                    return;
+                }
+                let defaultValue;
+                if (input.schema.default !== undefined) {
                     defaultValue = input.schema.default;
                 } else if (input.schema.type === "boolean") {
                     const required = input.schema.required || input.required || input.minOccurs > 0;
                     if (required) {
                         defaultValue = false;
                     }
+                } else if (
+                    result.example?.inputs?.[key] !== undefined
+                ) {
+                    defaultValue = result.example.inputs[key];
                 }
-                if (defaultValue) {
-                    this.executionValues[key] = defaultValue;
+                if (defaultValue !== undefined) {
+                    values[key] = defaultValue;
                 }
             });
-            // if no default values are set check if there are example values
-            if (
-                Object.values(this.executionValues).length === 0 &&
-                Object.values(result.example.inputs).length > 0
-            ) {
-                this.executionValues = result.example.inputs;
+            this.executionValues = values;
+        },
+        buildExecutionInputs () {
+            const inputs = {};
+            if (!this.process?.inputs) {
+                return inputs;
             }
+            for (const [key, inputDef] of Object.entries(this.process.inputs)) {
+                const rawValue = this.executionValues[key];
+                if (inputDef.schema.type === "number") {
+                    const parsed = Number(rawValue);
+                    if (!Number.isFinite(parsed)) {
+                        throw new Error(`Invalid number for ${key}`);
+                    }
+                    inputs[key] = parsed;
+                } else {
+                    inputs[key] = rawValue;
+                }
+            }
+            return inputs;
         },
         updateExecutionValue (key, value) {
             this.executionValues[key] = value;
@@ -133,10 +153,15 @@ export default {
             const formIsValid = this.$refs.form.reportValidity();
 
             if (formIsValid) {
-                const {
-                    job_name,
-                    ...inputs
-                } = this.executionValues;
+                const job_name = this.executionValues.job_name;
+                let inputs;
+
+                try {
+                    inputs = this.buildExecutionInputs();
+                } catch (error) {
+                    this.executionRequestState.error = error.message || String(error);
+                    return;
+                }
 
                 let additionalHeaders = {};
                 if (this.loggedIn) {

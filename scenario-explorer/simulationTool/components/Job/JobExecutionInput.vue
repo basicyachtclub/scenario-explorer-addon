@@ -17,6 +17,10 @@ export default {
     },
     emits: ["change"],
     methods: {
+        parseNumberInput (event) {
+            const parsed = Number(event.target.value);
+            this.$emit("change", Number.isFinite(parsed) ? parsed : null);
+        },
         handleArrayValueChange (index, valueAtIndex) {
             const newValue = [...this.value];
 
@@ -62,7 +66,8 @@ export default {
         :value="value"
         step="any"
         :required="data.schema.required || data.required || data.minOccurs > 0"
-        @input="$emit('change', Number($event.target.value))"
+        @input="parseNumberInput"
+        @change="parseNumberInput"
     >
     <input
         v-else-if="data.schema.type === 'boolean'"
