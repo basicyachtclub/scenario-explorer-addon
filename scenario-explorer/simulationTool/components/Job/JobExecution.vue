@@ -54,7 +54,8 @@ export default {
         ...mapMutations("Modules/SimulationTool", [
             "setSelectedJobId",
             "setSelectedProcessId",
-            "setMode"
+            "setMode",
+            "clearJobResultData"
         ]),
         ...mapActions("Modules/SimulationTool", [
             "fetchJobs"
@@ -93,11 +94,10 @@ export default {
             }
         },
         setDefaultExecutionValues (result) {
-            const values = { ...this.executionValues };
+            const job_name = this.executionValues.job_name;
+            const values = job_name !== undefined && job_name !== "" ? { job_name } : {};
+
             Object.entries(result.inputs).forEach(([key, input]) => {
-                if (values[key] !== undefined) {
-                    return;
-                }
                 let defaultValue;
                 if (input.schema.default !== undefined) {
                     defaultValue = input.schema.default;
@@ -116,6 +116,47 @@ export default {
                 }
             });
             this.executionValues = values;
+        },
+        buildExecutionInputsFromForm () {
+            const form = this.$refs.form;
+            const inputs = {};
+
+            if (!form || !this.process?.inputs) {
+                return this.buildExecutionInputs();
+            }
+
+            for (const [key, inputDef] of Object.entries(this.process.inputs)) {
+                const el = form.querySelector(`[name="input_${key}"]`);
+
+                if (!el) {
+                    continue;
+                }
+
+                if (inputDef.schema.type === "number") {
+                    const parsed = Number(el.value);
+                    if (!Number.isFinite(parsed)) {
+                        throw new Error(`Invalid number for ${key}`);
+                    }
+                    inputs[key] = parsed;
+                } else if (inputDef.schema.type === "boolean") {
+                    inputs[key] = el.checked;
+                } else if (inputDef.schema.type === "string") {
+                    inputs[key] = el.value;
+                }
+            }
+
+            const stateInputs = this.buildExecutionInputs();
+            for (const [key, inputDef] of Object.entries(this.process.inputs)) {
+                if (inputs[key] === undefined) {
+                    if (inputDef.schema.type === "array" && stateInputs[key] !== undefined) {
+                        inputs[key] = stateInputs[key];
+                    } else if (stateInputs[key] !== undefined) {
+                        inputs[key] = stateInputs[key];
+                    }
+                }
+            }
+
+            return inputs;
         },
         buildExecutionInputs () {
             const inputs = {};
@@ -137,7 +178,10 @@ export default {
             return inputs;
         },
         updateExecutionValue (key, value) {
-            this.executionValues[key] = value;
+            this.executionValues = {
+                ...this.executionValues,
+                [key]: value
+            };
         },
         resetExecutionValues (newInputsConfig = this.process.inputs) {
             this.executionValues = {};
@@ -157,7 +201,7 @@ export default {
                 let inputs;
 
                 try {
-                    inputs = this.buildExecutionInputs();
+                    inputs = this.buildExecutionInputsFromForm();
                 } catch (error) {
                     this.executionRequestState.error = error.message || String(error);
                     return;
@@ -188,6 +232,7 @@ export default {
                         this.executionRequestState.error = result.error_message || response.status + ': unknown error';
                     } else {
                         this.resetExecutionValues();
+                        this.clearJobResultData(result.jobID);
 
                         this.setMode("job-details");
                         this.setSelectedJobId(result.jobID);
@@ -255,8 +300,7 @@ export default {
                         <JobExecutionInput
                             :input-key="key"
                             :data="input"
-                            :value="executionValues[key]"
-                            @change="updateExecutionValue(key, $event)"
+                            v-model="executionValues[key]"
                         />
                     </template>
                 </div>

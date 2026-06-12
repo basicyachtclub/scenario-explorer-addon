@@ -15,10 +15,21 @@ export default {
     chartConfigs: {
       type: Object,
       default: {}
+    },
+    jobId: {
+      type: String,
+      default: null
+    },
+    jobResultData: {
+      type: Object,
+      default: null
     }
   },
   computed: {
-    ...mapGetters("Modules/SimulationTool", ["jobResultData", "jobs"])
+    ...mapGetters("Modules/SimulationTool", ["jobs"]),
+    effectiveJobResultData() {
+      return this.jobResultData || {};
+    }
   },
   methods: {
     getValue(obj, prop) {
@@ -34,9 +45,9 @@ export default {
     },
     getDataNode(jobId) {
       if (!this.chartConfigs[jobId]?.rootProp) {
-        return this.jobResultData[jobId];
+        return this.effectiveJobResultData[jobId];
       }
-      return this.getValue(this.jobResultData[jobId], this.chartConfigs[jobId].rootProp + '.0')
+      return this.getValue(this.effectiveJobResultData[jobId], this.chartConfigs[jobId].rootProp + '.0')
     },
     updateChartConfigs: function(jobId, prop, value) {
       this.$emit('update:chartConfigs', {
@@ -63,14 +74,14 @@ export default {
         <option value="bar">{{ $t('additional:modules.tools.simulationTool.chart-bar') }}</option>
       </select>
     </div>
-    <template v-for="(value, jobId) in this.jobResultData" :key="jobId">
+    <template v-for="(value, jobId) in this.effectiveJobResultData" :key="jobId">
       <span>{{ this.getName(jobId) }}</span>
       <div class="input-wrapper prop-path-wrapper">
         <label>{{ $t('additional:modules.tools.simulationTool.chartDataRootProperty') }}</label>
         <PropPathSelector
           :modelValue="this.chartConfigs?.[jobId]?.rootProp || ''"
           @update:modelValue="(value) => updateChartConfigs(jobId, 'rootProp', value)"
-          :node="this.jobResultData[jobId]"
+          :node="this.effectiveJobResultData[jobId]"
         />
       </div>
       <div class="input-wrapper prop-path-wrapper" v-if="this.getDataNode(jobId)">

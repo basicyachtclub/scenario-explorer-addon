@@ -1,6 +1,5 @@
 <script>
 import Plotly from 'plotly.js-dist';
-import { mapGetters } from "vuex";
 
 export default {
   name: "Chart",
@@ -12,10 +11,18 @@ export default {
     chartConfigs: {
       type: Object,
       default: {}
+    },
+    jobId: {
+      type: String,
+      default: null
+    },
+    jobResultData: {
+      type: Object,
+      default: null
     }
   },
   watch: {
-    jobResultData: {
+    effectiveJobResultData: {
       handler() {
         this.drawChart();
       },
@@ -66,16 +73,19 @@ export default {
       }
     },
     getPlotlyData() {
-      const jobIds = Object.keys(this.chartConfigs)
+      const data = this.effectiveJobResultData;
+      const jobIds = Object.keys(this.chartConfigs).filter(
+        (jobId) => data[jobId]
+      );
 
-      if (!this.jobResultData || !this.type || jobIds.length === 0) {
+      if (!data || !this.type || jobIds.length === 0) {
         return [];
       }
 
       const unsortedTraces = jobIds.map(jobId => {
         const chartConfig = this.chartConfigs[jobId];
 
-        const root = this.getValue(this.jobResultData[jobId], chartConfig.rootProp);
+        const root = this.getValue(data[jobId], chartConfig.rootProp);
 
         if (!Array.isArray(root)) {
           return [];
@@ -112,7 +122,9 @@ export default {
     this.drawChart(this.chartData);
   },
   computed: {
-    ...mapGetters("Modules/SimulationTool", ["jobResultData"]),
+    effectiveJobResultData() {
+      return this.jobResultData || {};
+    }
   },
 };
 

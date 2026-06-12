@@ -49,9 +49,7 @@ export default {
         this.updateLayer();
     },
     unmounted() {
-        if (this.intervalId) {
-            window.clearInterval(this.intervalId);
-        }
+        this.clearPollInterval();
         if (this.job) {
             let layerObject = this.layerConfigById(this.job.jobID);
             if (layerObject) {
@@ -64,15 +62,23 @@ export default {
         }
     },
     watch: {
-        job(newJob) {
-            if (newJob) {
-                this.fetchJobResultData();
+        selectedJobId (newId, oldId) {
+            if (newId && newId !== oldId) {
+                this.clearPollInterval();
+                this.job = null;
+                this.jobRequestState.error = null;
+                this.resultRequestState.error = null;
+                this.fetchJob(newId);
+            }
+        },
+        job (newJob) {
+            if (newJob?.status === "successful") {
                 setTimeout(() => {
                     this.fetchJobLayer(newJob);
                     this.initMapFilters();
                 }, 3000);
-        }
-    },
+            }
+        },
     mapFilters: {
         // watch (deeply) for changes in mapFilters to initiate new WFS requests or filter data in client
         handler: function (newVal, oldVal) {
@@ -88,12 +94,26 @@ export default {
     methods: {
         ...mapActions(["addLayerToLayerConfig", "addOrReplaceLayer"]),
         ...mapMutations("Modules/SimulationTool", ["setMode", "setJobResultData"]),
-        async fetchJob(jobId) {
-            let additionalHeaders = {};
-            if (this.loggedIn) {
-                additionalHeaders = {
-                    Authorization: `Bearer ${this.accessToken}`
-                };
+        isJobInProgress (status) {
+            return status === "accepted" || status === "running";
+        },
+        clearPollInterval () {
+            if (this.intervalId) {
+                window.clearInterval(this.intervalId);
+                this.intervalId = null;
+            }
+        },
+        getAuthHeaders () {
+            if (!this.loggedIn) {
+                return {};
+            }
+            return {
+                Authorization: `Bearer ${this.accessToken}`
+            };
+        },
+        async fetchJob (jobId) {
+            if (!jobId) {
+                return;
             }
 
             try {
@@ -101,41 +121,48 @@ export default {
                 const response = await fetch(`/api/jobs/${jobId}?additionalMetadata=true`, {
                     headers: {
                         "Content-Type": "application/json",
-                        ...additionalHeaders
+                        ...this.getAuthHeaders()
                     }
-                })
+                });
                 const result = await response.json();
                 if (!response.ok) {
-                    this.jobRequestState.error = result.error_message || response.status + ': unknown errror';
-                    if (this.intervalId) {
-                        window.clearInterval(this.intervalId);
-                    }
-                } else {
-                    this.job = result;
+                    this.jobRequestState.error = result.error_message || response.status + ": unknown errror";
+                    this.clearPollInterval();
+                    return;
                 }
-                if (result.status !== 'running') {
-                    this.jobRequestState.loading = false;
+
+                this.job = result;
+
+                if (this.isJobInProgress(result.status)) {
+                    if (!this.intervalId) {
+                        this.intervalId = window.setInterval(
+                            () => this.fetchJob(jobId),
+                            5000
+                        );
+                    }
+                    return;
+                }
+
+                this.clearPollInterval();
+
+                if (result.status === "successful") {
+                    await this.fetchJobResultData(false);
+                } else if (result.status === "failed" || result.status === "dismissed") {
+                    this.jobRequestState.error = result.message || `Job ${result.status}`;
                 }
             } catch (error) {
-                this.jobRequestState.error = error || 'unknown error';
-                if (this.intervalId) {
-                    window.clearInterval(this.intervalId);
-                }
+                this.jobRequestState.error = error || "unknown error";
+                this.clearPollInterval();
             } finally {
                 this.jobRequestState.loading = false;
             }
         },
-        async fetchJobResultData() {
-            // check if data is already in store
-            if (this.jobResultData[this.selectedJobId]) {
+        async fetchJobResultData (force = false) {
+            if (this.job?.status !== "successful") {
                 return;
             }
 
-            if (this.intervalId) {
-                window.clearInterval(this.intervalId);
-            }
-            if (this.job.status === 'running') {
-                this.intervalId = window.setInterval(() => this.fetchJob(this.selectedJobId), 5000);
+            if (!force && this.jobResultData[this.selectedJobId]) {
                 return;
             }
 
@@ -143,37 +170,25 @@ export default {
             if (!url) {
                 return;
             }
-            let additionalHeaders = {};
-            if (this.loggedIn) {
-                additionalHeaders = {
-                    Authorization: `Bearer ${this.accessToken}`
-                };
-            }
 
             try {
                 this.resultRequestState.loading = true;
                 const response = await fetch(url, {
                     headers: {
                         "Content-Type": "application/json",
-                        ...additionalHeaders
+                        ...this.getAuthHeaders()
                     }
                 });
                 const result = await response.json();
                 if (!response.ok) {
-                    this.resultRequestState.error = result.error_message || response.status + ': unknown errror';
-                    if (this.intervalId) {
-                        window.clearInterval(this.intervalId);
-                    }
+                    this.resultRequestState.error = result.detail || result.error_message || response.status + ": unknown errror";
                 } else {
                     this.setJobResultData({
                         [this.selectedJobId]: result
                     });
                 }
             } catch (error) {
-                this.resultRequestState.error = error || 'unknown error';
-                if (this.intervalId) {
-                    window.clearInterval(this.intervalId);
-                }
+                this.resultRequestState.error = error || "unknown error";
             } finally {
                 this.resultRequestState.loading = false;
             }
@@ -205,15 +220,23 @@ export default {
                 await this.addLayerToLayerConfig({layerConfig: layerObject, parentKey: 'subjectlayer'});
             }
         },
-        async downloadJobResultData() {
-            if (!this.jobResultData) {
+        async downloadJobResultData () {
+            let data = this.jobResultData[this.selectedJobId];
+
+            if (!data && this.job?.status === "successful") {
+                await this.fetchJobResultData(true);
+                data = this.jobResultData[this.selectedJobId];
+            }
+
+            if (!data) {
                 return;
             }
-            const blob = new Blob([JSON.stringify(this.jobResultData, null, 2)], { type: 'application/json' });
+
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
             const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
+            const a = document.createElement("a");
             a.href = url;
-            a.download = this.job.jobID + '_result.json';
+            a.download = this.job.jobID + "_result.json";
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -429,7 +452,7 @@ export default {
                     <ul>
                         <li v-for="(link, index) in job?.links" :key="link.rel">
                             <button
-                                v-if="jobResultData"
+                                v-if="jobResultData[selectedJobId]"
                                 title="Download"
                                 class="btn btn-link"
                                 @click="downloadJobResultData"
@@ -544,7 +567,7 @@ export default {
                     <h4>{{ $t('additional:modules.tools.simulationTool.charts') }}</h4>
                     <AsyncWrapper :asyncState="resultRequestState">
                         <div class="diagram-wrapper">
-                            <Diagramm />
+                            <Diagramm :job-id="selectedJobId" />
                         </div>
                     </AsyncWrapper>
                 </div>

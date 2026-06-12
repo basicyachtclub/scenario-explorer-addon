@@ -10,28 +10,31 @@ export default {
             type: Object,
             required: true
         },
-        "value": {
-            type: [String, Number, Boolean, Array],
-            default: ""
+        "modelValue": {
+            type: [String, Number, Boolean, Array, null],
+            default: undefined
         }
     },
-    emits: ["change"],
+    emits: ["update:modelValue"],
     methods: {
         parseNumberInput (event) {
             const parsed = Number(event.target.value);
-            this.$emit("change", Number.isFinite(parsed) ? parsed : null);
+            this.$emit(
+                "update:modelValue",
+                Number.isFinite(parsed) ? parsed : null
+            );
         },
         handleArrayValueChange (index, valueAtIndex) {
-            const newValue = [...this.value];
+            const newValue = [...(this.modelValue || [])];
 
             newValue[index] = valueAtIndex;
-            this.$emit("change", newValue);
+            this.$emit("update:modelValue", newValue);
         },
         handleArrayValueDeletion (index) {
-            const newValue = [...this.value];
+            const newValue = [...(this.modelValue || [])];
 
             newValue.splice(index, 1);
-            this.$emit("change", newValue);
+            this.$emit("update:modelValue", newValue);
         }
     }
 };
@@ -49,9 +52,9 @@ export default {
         :maxLength="data.schema.maxLength"
         :pattern="data.schema.pattern"
         :placeholder="data.schema.default"
-        :value="value"
+        :value="modelValue"
         :required="data.schema.required || data.required || data.minOccurs > 0"
-        @input="$emit('change', $event.target.value)"
+        @input="$emit('update:modelValue', $event.target.value)"
     >
     <input
         v-else-if="data.schema.type === 'number'"
@@ -63,7 +66,7 @@ export default {
         :min="data.schema.minimum"
         :max="data.schema.maximum"
         :placeholder="data.schema.default"
-        :value="value"
+        :value="modelValue"
         step="any"
         :required="data.schema.required || data.required || data.minOccurs > 0"
         @input="parseNumberInput"
@@ -77,16 +80,16 @@ export default {
         :name="`input_${inputKey}`"
         type="checkbox"
         :placeholder="data.schema.default"
-        :value="value"
-        @input="$emit('change', $event.target.checked)"
+        :checked="!!modelValue"
+        @change="$emit('update:modelValue', $event.target.checked)"
     >
     <div
         v-else-if="data.schema.type === 'array'"
-        :key="`input_${inputKey}_${value?.length}`"
+        :key="`input_${inputKey}_${modelValue?.length}`"
         class="d-flex flex-column gap-1"
     >
         <div
-            v-for="(_, index) in value"
+            v-for="(_, index) in modelValue"
             :key="`input_${inputKey}_${index}`"
             class="d-flex align-items-center gap-2"
         >
@@ -98,11 +101,11 @@ export default {
                         required: index < data.schema.minItems,
                     },
                 }"
-                :value="value[index]"
-                @change="handleArrayValueChange(index, $event)"
+                :model-value="modelValue[index]"
+                @update:modelValue="handleArrayValueChange(index, $event)"
             />
             <button
-                v-if="value.length > 1"
+                v-if="modelValue.length > 1"
                 class="bootstrap-icon"
                 @click="handleArrayValueDeletion(index)"
             >
@@ -110,11 +113,11 @@ export default {
             </button>
         </div>
         <button
-            v-if="!data.schema.maxItems || value?.length < data.schema.maxItems"
+            v-if="!data.schema.maxItems || modelValue?.length < data.schema.maxItems"
             :key="`input_${inputKey}_array_add_button`"
             type="button"
             class="btn btn-sm btn-secondary"
-            @click="$emit('change', [...value, ''])"
+            @click="$emit('update:modelValue', [...(modelValue || []), ''])"
         >
             <i class="bi-plus-circle" ></i>
             {{ $t("additional:modules.tools.simulationTool.inputArrayAddButton", { title: data.title }) }}

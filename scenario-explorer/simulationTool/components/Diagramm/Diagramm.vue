@@ -9,6 +9,12 @@ export default {
     Chart,
     ChartSettings
   },
+  props: {
+    jobId: {
+      type: String,
+      default: null
+    }
+  },
   data() {
     return {
       data: [],
@@ -20,8 +26,7 @@ export default {
     };
   },
   watch: {
-    jobResultData: {
-      // get configured graph properties from providers
+    scopedJobResultData: {
       handler(newValue) {
         const jobIds = Object.keys(newValue);
         const jobs = this.jobs;
@@ -54,12 +59,21 @@ export default {
       return jobConfig?.xProp && jobConfig?.yProp && jobConfig?.rootProp;
     },
     atLeastOneChartIsValid() {
-      const jobIds = Object.keys(this.jobResultData);
+      const jobIds = Object.keys(this.scopedJobResultData);
       return jobIds.some(jobId => this.chartConfigIsValid(jobId));
     },
   },
   computed: {
     ...mapGetters("Modules/SimulationTool", ["jobResultData", "providers", "jobs"]),
+    scopedJobResultData() {
+      if (this.jobId && this.jobResultData[this.jobId]) {
+        return { [this.jobId]: this.jobResultData[this.jobId] };
+      }
+      if (this.jobId) {
+        return {};
+      }
+      return this.jobResultData;
+    },
     validationMessage() {
       if (!this.atLeastOneChartIsValid()) {
         return this.$t('additional:modules.tools.simulationTool.inValidChartConfig');
@@ -94,10 +108,14 @@ export default {
     <Chart
       v-if="activePanel === 'chart'"
       :type="type"
+      :job-id="jobId"
+      :job-result-data="scopedJobResultData"
       v-model:chartConfigs="chartConfigs"
     />
     <ChartSettings
         v-if="activePanel === 'settings'"
+        :job-id="jobId"
+        :job-result-data="scopedJobResultData"
         v-model:chartConfigs="chartConfigs"
         v-model:type="type"
     />
