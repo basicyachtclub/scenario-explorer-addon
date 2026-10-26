@@ -118,3 +118,17 @@ This does not replace image root `node_modules`; it only helps local editors.
 | `simulationTool/package.json` | `vuetify` in dependencies | Explicit dependency for the addon |
 | `docker-compose.yml` | Volumes + `host-gateway` | Live addon + portalconfig; UMP on host |
 | `README.md` | Local UMP, ports, Vuetify note | Onboarding and upgrade hints |
+
+---
+
+## 5. Runtime / API issues (not build)
+
+Webpack and Docker fixes above address **compile** failures (`Can't resolve vuetify`, missing `@vueform/slider`, etc.).
+
+If the portal **loads** but simulations fail — empty `{}` results, login redirect errors, job status stuck at `accepted`, ensemble JSON parse errors — check **UMP + Keycloak + proxy configuration**, not the Docker image:
+
+- [ump-berlin-config/docs/scenario-explorer-local-ump.md](https://github.com/basicyachtclub/ump-berlin-config/blob/main/docs/scenario-explorer-local-ump.md) — primary integration guide
+- [ump-berlin-config/docs/keycloak-local-dev.md](https://github.com/basicyachtclub/ump-berlin-config/blob/main/docs/keycloak-local-dev.md) — roles and OIDC client
+- [ump-berlin-config/docs/local-dev-setup-findings.md](https://github.com/basicyachtclub/ump-berlin-config/blob/main/docs/local-dev-setup-findings.md) — symptom log from local setup sessions
+
+Key settings: `UMP_API_SERVER_URL=http://localhost:8080` in UMP `.env`, `simulationApiUrl: http://localhost:8080/api` in [`portalconfig/config.js`](../portalconfig/config.js).

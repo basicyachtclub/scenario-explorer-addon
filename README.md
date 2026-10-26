@@ -29,11 +29,16 @@ Most configuration of the AddOn and takes place in the [portalconfig](./portalco
 
 ### Local Urban Model Platform (this repository defaults)
 
-[`portalconfig/config.js`](./portalconfig/config.js) is set up for a typical **urban-model-platform** dev stack on the host:
+**Full stack setup (UMP + Keycloak + portal proxy, troubleshooting):**  
+[ump-berlin-config/docs/scenario-explorer-local-ump.md](https://github.com/basicyachtclub/ump-berlin-config/blob/main/docs/scenario-explorer-local-ump.md)
 
-- API: `http://127.0.0.1:5000/api` (`simulationApiUrl`)
+[`portalconfig/config.js`](./portalconfig/config.js) is set up for a typical **urban-model-platform** dev stack with the portal nginx/webpack proxy:
+
+- API: **`http://localhost:8080/api`** (`simulationApiUrl`) — same-origin via proxy; the browser does **not** call UMP `:5000` directly
 - Keycloak (OIDC): `http://localhost:8282/auth/realms/UrbanModelPlatform/...` — path **`/auth`** matches Keycloak when served under that context (account-console at `http://localhost:8282/auth`). Keep **`localhost`** (not mixed with `127.0.0.1`) on `oidcAuthorizationEndpoint` / `oidcTokenEndpoint` so issuer and redirect URIs align with client **ump-client** (realm **UrbanModelPlatform**; same stack as UMP `.env.example`).
 - Redirect URI after login: `http://localhost:8080/portal/simulation/` (nginx from `docker compose`; override host port with `SCENARIO_EXPLORER_HTTP_PORT`, default **8080**)
+
+UMP `.env` on the host should include **`UMP_API_SERVER_URL=http://localhost:8080`** (with `http://`) so job result links work from the browser. See the UMP guide above.
 
 **Docker Compose dev server:** [`devtools/proxyconf.json`](./devtools/proxyconf.json) proxies **`/api`** from the Masterportal webpack dev server to **`http://host.docker.internal:5000`** (UMP on the host). [`docker-compose.yml`](./docker-compose.yml) sets `extra_hosts` so `host.docker.internal` resolves on Linux too.
 
@@ -47,7 +52,9 @@ Most configuration of the AddOn and takes place in the [portalconfig](./portalco
 
 **Vuetify + Webpack 4:** The addon loads Vuetify via **`vuetify/lib/...`** paths in [`scenario-explorer/simulationTool/vuetify/index.js`](./scenario-explorer/simulationTool/vuetify/index.js) because Masterportal’s webpack does not resolve Vuetify’s `package.json` `exports` subpaths (`vuetify/components`, etc.). Current 3.x builds ship **`lib/**/index.js`** (some older tarballs used `.mjs`). After a **major** `vuetify` upgrade, if the build breaks, confirm the filenames under `node_modules/vuetify/lib/components` and `.../directives` (or switch back to subpath imports if you move to a build that supports `exports`).
 
-**Run order:** Start UMP backing services and the Flask API (`make start-dev` and run the app per UMP docs), then `docker compose up --build` in this repo and open `http://localhost:8080/portal/simulation/` (or your chosen `SCENARIO_EXPLORER_HTTP_PORT`).
+**Run order:** Start UMP backing services and the Flask API (`make start-dev` and run the app per [UMP docs](https://github.com/basicyachtclub/ump-berlin-config/blob/main/docs/scenario-explorer-local-ump.md)), then `docker compose up --build` in this repo and open `http://localhost:8080/portal/simulation/` (or your chosen `SCENARIO_EXPLORER_HTTP_PORT`).
+
+**Runtime issues** (login, empty results, job status, ensembles): see [scenario-explorer-local-ump.md](https://github.com/basicyachtclub/ump-berlin-config/blob/main/docs/scenario-explorer-local-ump.md) — not a webpack rebuild problem.
 
 ### Modifying Existing Phrasing
 
