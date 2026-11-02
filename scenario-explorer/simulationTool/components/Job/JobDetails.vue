@@ -194,8 +194,11 @@ export default {
             }
         },
         async fetchJobLayer(job) {
+            // workspace must match UMP_GEOSERVER_WORKSPACE_NAME of the UMP instance
+            const workspace = Config.geoserverWorkspace || "UMP";
+
             // check if layer exists on geoserver
-            const response = await fetch('/geoserver/CUT/wms?service=WMS&version=1.1.1&request=DescribeLayer&layers=CUT:' + job.jobID);
+            const response = await fetch(`/geoserver/${workspace}/wms?service=WMS&version=1.1.1&request=DescribeLayer&layers=${workspace}:${job.jobID}`);
             if (!response.ok || !(await response.text()).includes("WMS_DescribeLayerResponse")) {
                 return;
             }
@@ -210,8 +213,8 @@ export default {
                     id: job.jobID,
                     name: "Szenario - " + job.name,
                     typ: "WMS",
-                    layers: ['CUT:' + job.jobID],
-                    url: '/geoserver/CUT/wms',
+                    layers: [`${workspace}:${job.jobID}`],
+                    url: `/geoserver/${workspace}/wms`,
                     version: '1.1.1',
                     visibility: true,
                     type: "layer",

@@ -47,6 +47,8 @@ const Config = {
     addons: ["simulationTool"],
     // Same-origin via nginx/webpack proxy (:8080/api → UMP on host). Avoids CORS and fixes job result links.
     simulationApiUrl: "http://localhost:8080/api",
+    // GeoServer workspace of the UMP instance (UMP_GEOSERVER_WORKSPACE_NAME); results are shown as WMS layers from /geoserver/<workspace>/wms
+    geoserverWorkspace: "UMP",
     login: {
         // Keycloak OIDC uses the /auth context path (account-console: http://localhost:8282/auth).
         // Use the same hostname as in the browser (localhost) for issuer/redirect consistency with Keycloak client settings.
