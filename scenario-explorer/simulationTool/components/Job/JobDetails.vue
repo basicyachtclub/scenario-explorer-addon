@@ -215,6 +215,8 @@ export default {
                     typ: "WMS",
                     layers: [`${workspace}:${job.jobID}`],
                     url: `/geoserver/${workspace}/wms`,
+                    // optional GeoServer style per process, see Config.resultStyles
+                    styles: [Config.resultStyles?.[job.processID] || ""],
                     version: '1.1.1',
                     visibility: true,
                     type: "layer",

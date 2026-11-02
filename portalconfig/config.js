@@ -49,6 +49,10 @@ const Config = {
     simulationApiUrl: "http://localhost:8080/api",
     // GeoServer workspace of the UMP instance (UMP_GEOSERVER_WORKSPACE_NAME); results are shown as WMS layers from /geoserver/<workspace>/wms
     geoserverWorkspace: "UMP",
+    // GeoServer style per process id for result layers (installed via ump-berlin-config/scripts/geoserver-install-styles.sh)
+    resultStyles: {
+        "noise_v4:traffic_noise_propagation": "noise_den",
+    },
     login: {
         // Keycloak OIDC uses the /auth context path (account-console: http://localhost:8282/auth).
         // Use the same hostname as in the browser (localhost) for issuer/redirect consistency with Keycloak client settings.

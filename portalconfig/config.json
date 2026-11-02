@@ -290,7 +290,7 @@
             "version": "1.3.0",
             "format": "image/png",
             "transparent": false,
-            "visibility": true
+            "visibility": false
           },
           {
             "id": "berlin_k5_sw",
@@ -302,7 +302,7 @@
             "version": "1.3.0",
             "format": "image/png",
             "transparent": false,
-            "visibility": false
+            "visibility": true
           }
         ]
       },
