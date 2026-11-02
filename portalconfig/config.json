@@ -84,9 +84,10 @@
           "pointStyleId": "mapMarker_geo-alt-fill"
         },
         "mapView": {
-          "backgroundImage": "https://geodienste.hamburg.de/lgv-config/img/backgroundCanvas.jpeg",
-          "startZoomLevel": 4,
-          "startCenter": [565874, 5934140],
+          "epsg": "EPSG:25833",
+          "startZoomLevel": 3,
+          "startCenter": [391500, 5819500],
+          "extent": [360000, 5790000, 425000, 5845000],
           "mapInteractions": {
             "interactionModes": {
               "altShiftDragRotate": true,
@@ -98,29 +99,7 @@
           "numFeaturesToShow": 2,
           "infoText": "Exampletext"
         },
-        "startingMapMode": "2D",
-        "zoomTo": [
-          {
-            "id": "zoomToGeometry",
-            "layerId": "1692",
-            "property": "bezirk_name",
-            "allowedValues": [
-              "ALTONA",
-              "HARBURG",
-              "HAMBURG-NORD",
-              "BERGEDORF",
-              "EIMSBÜTTEL",
-              "HAMBURG-MITTE",
-              "WANDSBEK"
-            ]
-          },
-          {
-            "id": "zoomToFeatureId",
-            "layerId": "4560",
-            "property": "flaechenid",
-            "styleId": "location_eventlotse"
-          }
-        ]
+        "startingMapMode": "2D"
       },
       "portalFooter": {
         "urls": [
@@ -302,41 +281,29 @@
       "baselayer": {
         "elements": [
           {
-            "id": "453",
-            "name": "Geobasiskarten (HamburgDE)",
-            "shortname": "Geobasiskarten",
+            "id": "berlin_k5_farbe",
+            "name": "Karte von Berlin 1:5000 (Farbe)",
+            "shortname": "K5 Farbe",
             "typ": "WMS",
+            "url": "https://gdi.berlin.de/services/wms/k5_farbe",
+            "layers": "k5_farbe",
+            "version": "1.3.0",
+            "format": "image/png",
+            "transparent": false,
             "visibility": true
           },
           {
-            "id": "452",
-            "name": "Digitale Orthophotos (belaubt) Hamburg",
-            "shortname": "Orthophotos",
+            "id": "berlin_k5_sw",
+            "name": "Karte von Berlin 1:5000 (Schwarz-Weiß)",
+            "shortname": "K5 SW",
             "typ": "WMS",
-            "visibility": false,
-            "transparency": 30,
-            "preview": {
-              "zoomLevel": 6,
-              "center": "566245.97,5938894.79",
-              "radius": 500
-            }
-          },
-          {
-            "id": [
-              "4736",
-              "12062",
-              "4745",
-              "4739",
-              "12061",
-              "4742",
-              "12060",
-              "12059"
-            ],
-            "name": "Geobasiskarten (schwarz-grau)",
-            "shortname": "Karte schwarz-grau",
+            "url": "https://gdi.berlin.de/services/wms/k5_sw",
+            "layers": "k5_sw",
+            "version": "1.3.0",
+            "format": "image/png",
+            "transparent": false,
             "visibility": false
           }
-  
         ]
       },
       "subjectlayer": {

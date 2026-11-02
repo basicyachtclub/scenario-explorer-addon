@@ -4,6 +4,10 @@ const Config = {
             "EPSG:25832",
             "+title=ETRS89/UTM 32N +proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs",
         ],
+        [
+            "EPSG:25833",
+            "+title=ETRS89/UTM 33N +proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs",
+        ],
     ],
     footer: {
         urls: [
